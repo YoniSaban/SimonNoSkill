@@ -225,7 +225,7 @@ ul {
      swallows presses: the area under the disc is not part of any colour. */
   z-index: 3;
   /* Fixed size cap: the board may grow, the centre disc must not. */
-  width: min(136px, 42%);
+  width: min(112px, 34%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
