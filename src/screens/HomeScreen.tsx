@@ -32,20 +32,22 @@ export default function HomeScreen({ game }: Props) {
         <p className="status" aria-live="polite">
           {label}
         </p>
-        <div className="board-wrap">
-          <Board
-            litColor={litColor}
-            dimmed={status === 'presenting'}
-            interactive={status === 'awaitingInput'}
-            onPressStart={pressStart}
-          />
-          {(status === 'won' || status === 'lost') && (
-            <ResultDialog outcome={status} completedRounds={completedRounds} onConfirm={dismiss} />
-          )}
+        <div className="play">
+          <div className="board-wrap">
+            <Board
+              litColor={litColor}
+              dimmed={status === 'presenting'}
+              interactive={status === 'awaitingInput'}
+              onPressStart={pressStart}
+            />
+            {(status === 'won' || status === 'lost') && (
+              <ResultDialog outcome={status} completedRounds={completedRounds} onConfirm={dismiss} />
+            )}
+          </div>
+          <p className={`hint${audioFailed && status === 'idle' ? ' hint--error' : ''}`} aria-live="polite">
+            {hint}
+          </p>
         </div>
-        <p className={`hint${audioFailed && status === 'idle' ? ' hint--error' : ''}`} aria-live="polite">
-          {hint}
-        </p>
         <div className="actions">
           {status === 'idle' && (
             <button type="button" className="btn btn--primary" onClick={() => void start()}>

@@ -80,7 +80,10 @@ ul {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-3) 0;
+  /* Spans the whole app width (undoing .app's side padding) so scrolling never
+     clips the board's glow; the content keeps the 16px gutter via padding. */
+  margin-inline: calc(-1 * var(--space-3));
+  padding: var(--space-3) var(--space-3) var(--space-2);
 }
 
 /* ---------- Home ---------- */
@@ -113,9 +116,24 @@ ul {
   min-height: 56px;
 }
 
+/* The board + its hint take the free space between the stage text and the
+   start button, centred in it; the button sits right above the navigation. */
+.play {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* Phone-sized: at most the content width (inside the 16px gutters), and never
+   taller than the space left after the fixed chrome (header, texts, button,
+   navigation ~ 380px). */
 .board-wrap {
   position: relative;
-  width: min(100%, 340px, 40dvh);
+  width: max(240px, min(100%, 400px, calc(100dvh - 380px)));
 }
 
 .board {
@@ -206,7 +224,8 @@ ul {
   /* Above a lit quadrant (z-index 1) so no colour corner shows through, and it
      swallows presses: the area under the disc is not part of any colour. */
   z-index: 3;
-  width: 42%;
+  /* Fixed size cap: the board may grow, the centre disc must not. */
+  width: min(136px, 42%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
@@ -231,9 +250,10 @@ ul {
 .btn--primary {
   background: var(--blue);
   color: var(--white);
+  /* Shadows stay within the 12px below the button so the scroll area never clips them. */
   box-shadow:
-    0 5px 0 rgba(0, 0, 0, 0.28),
-    0 8px 20px rgba(0, 163, 255, 0.3);
+    0 4px 0 rgba(0, 0, 0, 0.28),
+    0 5px 7px rgba(0, 163, 255, 0.25);
 }
 
 .btn--primary:active {
