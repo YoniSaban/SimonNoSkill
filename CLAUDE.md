@@ -20,7 +20,7 @@
 - אין להוסיף יכולות שאינן במסמכים.
 
 ## חריגות מוסכמות מהמסמכים
-- **שם הריפו והנתיב:** הריפו הוא `YoniSaban/Simonns` והלינק החי הוא https://yonisaban.github.io/Simonns/ . לכן בכל מקום שבו `ARCHITECTURE.md` כותב `Simon` כשם ריפו או `/Simon/` כנתיב (`base` ב-Vite, `start_url`, `scope`, `id` ב-Manifest, כתובות localhost), משתמשים ב-`Simonns` וב-`/Simonns/`. הנתיב רגיש לאותיות גדולות וקטנות. שם האפליקציה המותקנת (`name`/`short_name`) נשאר `Simon`, וכותרת המסך נשארת "סיימון".
+- **שם הריפו והנתיב:** הריפו הוא `YoniSaban/SimonNoSkill` והלינק החי הוא https://yonisaban.github.io/SimonNoSkill/ . לכן בכל מקום שבו `ARCHITECTURE.md` כותב `Simon` כשם ריפו או `/Simon/` כנתיב (`base` ב-Vite, `start_url`, `scope`, `id` ב-Manifest, כתובות localhost), משתמשים ב-`SimonNoSkill` וב-`/SimonNoSkill/`. הנתיב רגיש לאותיות גדולות וקטנות. שם האפליקציה המותקנת (`name`/`short_name`) נשאר `Simon`, וכותרת המסך נשארת "סיימון".
 - **פרסום ל-GitHub Pages כבר מההקמה** ולא רק באבן דרך 5: כל דחיפה ל-`main` מפרסמת אוטומטית דרך GitHub Actions. עד אבן דרך 1 מתפרסם דף זמני מתיקיית `placeholder/`. באבן דרך 1 ה-Workflow מוחלף ב-Build של Vite (typecheck, בדיקות, build ופריסה של `dist/`), ו-`placeholder/` נמחקת. ההתקנה כאפליקציה (PWA) ועבודה בלי אינטרנט נשארות באבן דרך 5.
 
 ## Git ו-GitHub
