@@ -6,19 +6,25 @@ import type { GameApi } from '../game/useGame'
 type Props = { game: GameApi }
 
 export default function HomeScreen({ game }: Props) {
-  const { state, litColor, audioFailed, start, pressStart, dismiss } = game
+  const { state, litColor, audioFailed, start, resume, pressStart, dismiss } = game
   const { status, round, completedRounds } = state
 
   const label =
-    status === 'presenting' ? 'המשחק מציג את הרצף' : status === 'awaitingInput' ? 'התור שלך' : ''
-  const hint =
     status === 'presenting'
+      ? 'המשחק מציג את הרצף'
+      : status === 'awaitingInput'
+        ? 'התור שלך'
+        : status === 'paused'
+          ? 'המשחק מושהה'
+          : ''
+  const audioError = audioFailed && (status === 'idle' || status === 'paused')
+  const hint = audioError
+    ? 'לא ניתן להפעיל את הצלילים. נסו שוב.'
+    : status === 'presenting'
       ? 'המתן...'
       : status === 'awaitingInput'
         ? 'הקש על הצבעים לפי הסדר'
-        : status === 'idle' && audioFailed
-          ? 'לא ניתן להפעיל את הצלילים. נסו שוב.'
-          : ''
+        : ''
 
   return (
     <>
@@ -36,7 +42,7 @@ export default function HomeScreen({ game }: Props) {
           <div className="board-wrap">
             <Board
               litColor={litColor}
-              dimmed={status === 'presenting'}
+              dimmed={status === 'presenting' || status === 'paused'}
               interactive={status === 'awaitingInput'}
               onPressStart={pressStart}
             />
@@ -44,7 +50,7 @@ export default function HomeScreen({ game }: Props) {
               <ResultDialog outcome={status} completedRounds={completedRounds} onConfirm={dismiss} />
             )}
           </div>
-          <p className={`hint${audioFailed && status === 'idle' ? ' hint--error' : ''}`} aria-live="polite">
+          <p className={`hint${audioError ? ' hint--error' : ''}`} aria-live="polite">
             {hint}
           </p>
         </div>
@@ -52,6 +58,11 @@ export default function HomeScreen({ game }: Props) {
           {status === 'idle' && (
             <button type="button" className="btn btn--primary" onClick={() => void start()}>
               התחל משחק
+            </button>
+          )}
+          {status === 'paused' && (
+            <button type="button" className="btn btn--primary" onClick={() => void resume()}>
+              המשך משחק
             </button>
           )}
         </div>

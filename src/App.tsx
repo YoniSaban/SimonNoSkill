@@ -10,8 +10,8 @@ export default function App() {
   const game = useGame()
 
   const navigate = (next: Screen) => {
-    // Temporary until Milestone 3 adds pause/resume: leaving the game cancels it.
-    if (next === 'about' && game.state.status !== 'idle') game.abandon()
+    // Leaving the game screen pauses an active game; coming back never resumes it.
+    if (next === 'about') game.pause()
     setScreen(next)
   }
 

@@ -90,10 +90,111 @@ describe('gameReducer', () => {
     expect(gameReducer(s, { type: 'dismiss' })).toBe(s)
   })
 
-  it('abandon cancels an active game and invalidates a pending presentation', () => {
+})
+
+describe('pause and resume', () => {
+  /** Stage 3 in progress, awaiting input, with the first colour already entered. */
+  function stage3Input(): GameState {
+    let s = started(COLORS_10[0])
+    for (const next of [COLORS_10[1], COLORS_10[2]]) {
+      s = pressAll(awaiting(s), s.sequence)
+      s = gameReducer(s, { type: 'roundAdvance', nextColor: next })
+    }
+    return pressAll(awaiting(s), [COLORS_10[0]])
+  }
+
+  it('pauses while presenting without changing the sequence, stage or counters', () => {
     const s = started('red')
-    const idle = gameReducer(s, { type: 'abandon' })
-    expect(idle.status).toBe('idle')
-    expect(gameReducer(idle, { type: 'presentationDone', presentationId: s.presentationId })).toBe(idle)
+    const p = gameReducer(s, { type: 'pause' })
+    expect(p).toMatchObject({ status: 'paused', round: 1, sequence: ['red'], completedRounds: 0, gameId: s.gameId })
+  })
+
+  it('pauses mid-input: keeps the stage and sequence, throws the partial input away', () => {
+    const s = stage3Input()
+    expect(s).toMatchObject({ status: 'awaitingInput', round: 3, inputIndex: 1 })
+    const p = gameReducer(s, { type: 'pause' })
+    expect(p).toMatchObject({
+      status: 'paused',
+      round: 3,
+      inputIndex: 0,
+      completedRounds: 2,
+      sequence: COLORS_10.slice(0, 3),
+    })
+  })
+
+  it('makes an in-flight presentation obsolete', () => {
+    const s = started('red')
+    const p = gameReducer(s, { type: 'pause' })
+    expect(gameReducer(p, { type: 'presentationDone', presentationId: s.presentationId })).toBe(p)
+  })
+
+  it('ignores presses while paused', () => {
+    const p = gameReducer(stage3Input(), { type: 'pause' })
+    expect(gameReducer(p, { type: 'press', color: COLORS_10[0] })).toBe(p)
+  })
+
+  it('resumes the same stage and the full sequence: no new colour, no new stage, no new game', () => {
+    const paused = gameReducer(stage3Input(), { type: 'pause' })
+    const r = gameReducer(paused, { type: 'resume' })
+    expect(r).toMatchObject({
+      status: 'presenting',
+      round: 3,
+      inputIndex: 0,
+      completedRounds: 2,
+      sequence: COLORS_10.slice(0, 3),
+      gameId: paused.gameId,
+    })
+    expect(r.presentationId).not.toBe(paused.presentationId)
+    // The restarted stage plays like a normal one.
+    expect(awaiting(r).status).toBe('awaitingInput')
+  })
+
+  it('resumes only once: a second resume does nothing', () => {
+    const r = gameReducer(gameReducer(started(), { type: 'pause' }), { type: 'resume' })
+    expect(gameReducer(r, { type: 'resume' })).toBe(r)
+  })
+
+  it('only resumes a paused game', () => {
+    for (const s of [initialGameState, started(), awaiting(started())]) {
+      expect(gameReducer(s, { type: 'resume' })).toBe(s)
+    }
+  })
+
+  it('pausing twice is harmless', () => {
+    const p = gameReducer(started(), { type: 'pause' })
+    expect(gameReducer(p, { type: 'pause' })).toBe(p)
+  })
+
+  it('does not touch a game that has not started or has finished', () => {
+    expect(gameReducer(initialGameState, { type: 'pause' })).toBe(initialGameState)
+    const lost = gameReducer(gameReducer(pressAll(awaiting(started('red')), ['green']), { type: 'finish' }), {
+      type: 'pause',
+    })
+    expect(lost.status).toBe('lost')
+  })
+
+  it('pausing at a stage boundary keeps the completed stage; it is replayed on resume', () => {
+    const boundary = pressAll(awaiting(started('red')), ['red'])
+    expect(boundary).toMatchObject({ status: 'roundComplete', round: 1, completedRounds: 1 })
+    const paused = gameReducer(boundary, { type: 'pause' })
+    expect(paused).toMatchObject({ status: 'paused', round: 1, completedRounds: 1, sequence: ['red'] })
+    const replay = awaiting(gameReducer(paused, { type: 'resume' }))
+    // Failing the replay still reports the stage that had already been completed.
+    expect(pressAll(replay, ['green'])).toMatchObject({ status: 'losing', completedRounds: 1 })
+    // Completing it again moves on to the next stage as usual.
+    expect(pressAll(replay, ['red']).status).toBe('roundComplete')
+  })
+
+  it('settles a decided outcome instead of pausing it, so a loss cannot be dodged', () => {
+    const losing = pressAll(awaiting(started('red')), ['green'])
+    expect(gameReducer(losing, { type: 'pause' })).toMatchObject({ status: 'lost', completedRounds: 0 })
+
+    let winning = started(COLORS_10[0])
+    for (let round = 1; round <= 10; round++) {
+      winning = pressAll(awaiting(winning), winning.sequence)
+      if (round < 10) winning = gameReducer(winning, { type: 'roundAdvance', nextColor: COLORS_10[round] })
+    }
+    expect(winning.status).toBe('winning')
+    expect(gameReducer(winning, { type: 'pause' })).toMatchObject({ status: 'won', completedRounds: 10 })
   })
 })

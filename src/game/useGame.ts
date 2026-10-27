@@ -49,6 +49,9 @@ export function useGame() {
   const statusRef = useRef(status)
   statusRef.current = status
   const holdsRef = useRef<Hold[]>([])
+  // Set when a pause settles an already-decided game, so the result's sound and
+  // confetti are not played while the player is away.
+  const silentEndRef = useRef(false)
 
   // --- Player presses -------------------------------------------------------
 
@@ -180,6 +183,10 @@ export function useGame() {
   // --- End of game: sound and confetti --------------------------------------
 
   useEffect(() => {
+    if ((status === 'won' || status === 'lost') && silentEndRef.current) {
+      silentEndRef.current = false
+      return
+    }
     if (status === 'won') {
       playWin()
       void confetti({
@@ -216,21 +223,54 @@ export function useGame() {
 
   const dismiss = useCallback(() => dispatch({ type: 'dismiss' }), [])
 
-  const abandon = useCallback(() => {
+  /**
+   * The player leaves the game (About screen, app hidden, phone locked): stop all
+   * light, sound and confetti at once and pause. Never resumes by itself.
+   */
+  const pause = useCallback(() => {
+    const current = statusRef.current
     clearHolds()
     stopAll()
+    void confetti.reset()
     setPresentedColor(null)
-    dispatch({ type: 'abandon' })
+    if (current === 'winning' || current === 'losing') silentEndRef.current = true
+    dispatch({ type: 'pause' })
   }, [clearHolds])
+
+  /** "המשך משחק": must run inside the click so the AudioContext may start. */
+  const resume = useCallback(async () => {
+    if (statusRef.current !== 'paused') return
+    setAudioFailed(false)
+    const ready = await unlockAudio()
+    if (!ready) {
+      setAudioFailed(true)
+      return
+    }
+    dispatch({ type: 'resume' })
+  }, [])
+
+  // Hiding the app or locking the phone pauses like leaving for the About screen.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') pause()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('pagehide', pause)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('pagehide', pause)
+    }
+  }, [pause])
 
   return {
     state,
     litColor: status === 'presenting' ? presentedColor : heldColor,
     audioFailed,
     start,
+    resume,
     pressStart,
     dismiss,
-    abandon,
+    pause,
   }
 }
 

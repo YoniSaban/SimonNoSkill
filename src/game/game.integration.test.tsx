@@ -293,34 +293,248 @@ describe('audio and navigation', () => {
     expect(screen.getByText('המשחק מציג את הרצף')).toBeInTheDocument()
   })
 
-  it('leaving for "אודות" mid-game cancels it and leaves no light, sound or timer behind', async () => {
-    queueColors(['red', 'green'])
+})
+
+const goAbout = () => fireEvent.click(button('אודות'))
+const goHome = () => fireEvent.click(button('בית'))
+
+function setVisibility(state: 'hidden' | 'visible') {
+  Object.defineProperty(document, 'visibilityState', { value: state, configurable: true })
+  fireEvent(document, new Event('visibilitychange'))
+}
+
+describe('pausing', () => {
+  afterEach(() => setVisibility('visible'))
+
+  it('leaving for "אודות" while the sequence is shown stops the light and sound at once and pauses', async () => {
+    queueColors(['red'])
     render(<App />)
     await startGame()
-    await advance(1000) // the red colour is lit and sounding
+    await advance(1000) // red is lit and sounding
     expect(button('אדום')).toHaveClass('quadrant--lit')
 
-    fireEvent.click(button('אודות'))
+    goAbout()
     await advance(0)
     expect(audio.stopAll).toHaveBeenCalled()
     expect(tones[0].stop).toHaveBeenCalled()
 
     const toneCount = tones.length
-    fireEvent.click(button('בית'))
+    goHome()
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
     expect(screen.getByText('שלב 1 מתוך 10')).toBeInTheDocument()
-    expect(button('התחל משחק')).toBeInTheDocument()
     quadrants().forEach((q) => {
       expect(q).not.toHaveClass('quadrant--lit')
       expect(q).toBeDisabled()
     })
+    expect(screen.getByRole('group', { name: 'לוח המשחק' }).className).toContain('board--dim')
 
-    await advance(20_000)
-    expect(tones).toHaveLength(toneCount) // no stale callback produced more sound
+    await advance(30_000)
+    expect(tones).toHaveLength(toneCount) // a cancelled presentation produced nothing more
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(randomColor).toHaveBeenCalledTimes(1)
+    expect(audio.playLose).not.toHaveBeenCalled() // a paused game is not a loss
   })
 
-  it('leaving for "אודות" with the result dialog open closes the game', async () => {
+  it('does not resume by itself on returning; "המשך משחק" shows for a paused game only', async () => {
+    queueColors(['red'])
+    render(<App />)
+    expect(screen.queryByRole('button', { name: 'המשך משחק' })).not.toBeInTheDocument()
+    await startGame()
+    expect(screen.queryByRole('button', { name: 'המשך משחק' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'התחל משחק' })).not.toBeInTheDocument()
+
+    goAbout()
+    goHome()
+    expect(button('המשך משחק')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'התחל משחק' })).not.toBeInTheDocument()
+    await advance(10_000)
+    expect(audio.startTone).not.toHaveBeenCalled()
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
+  })
+
+  it('pausing in the middle of the player\'s input keeps the stage and replays the whole sequence on resume', async () => {
+    queueColors(SEQ)
+    render(<App />)
+    await startGame()
+    await playStages(2)
+    await advance(1000)
+    await advance(presentationMs(3)) // stage 3: red, green, yellow
+    tap('red') // one of three entered
+    expect(randomColor).toHaveBeenCalledTimes(3)
+
+    goAbout()
+    goHome()
+    expect(screen.getByText('שלב 3 מתוך 10')).toBeInTheDocument()
+    vi.mocked(audio.startTone).mockClear()
+
+    fireEvent.click(button('המשך משחק'))
+    await advance(0)
+    expect(audio.unlockAudio).toHaveBeenCalled()
+    expect(screen.getByText('המשחק מציג את הרצף')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'המשך משחק' })).not.toBeInTheDocument()
+
+    await advance(1000)
+    expect(audio.startTone).toHaveBeenLastCalledWith('red')
+    await advance(600 + 250)
+    expect(audio.startTone).toHaveBeenLastCalledWith('green')
+    await advance(600 + 250)
+    expect(audio.startTone).toHaveBeenLastCalledWith('yellow')
+    await advance(600)
+    expect(audio.startTone).toHaveBeenCalledTimes(3) // the whole sequence, once
+
+    // Input starts again from the first colour; the earlier "red" does not count.
+    expect(screen.getByText('התור שלך')).toBeInTheDocument()
+    tap('red')
+    tap('green')
+    tap('yellow')
+    await advance(1000)
+    expect(screen.getByText('שלב 4 מתוך 10')).toBeInTheDocument()
+    expect(randomColor).toHaveBeenCalledTimes(4) // resuming added no colour; only finishing stage 3 did
+  })
+
+  it('pausing in the middle of the player\'s input and getting the order wrong on resume still loses', async () => {
+    queueColors(SEQ)
+    render(<App />)
+    await startGame()
+    await playStages(1)
+    await advance(1000)
+    await advance(presentationMs(2)) // stage 2: red, green
+    tap('red')
+
+    goAbout()
+    goHome()
+    fireEvent.click(button('המשך משחק'))
+    await advance(0)
+    await advance(presentationMs(2))
+    tap('green') // would have been right before the pause; now input restarts at red
+    await advance(1000)
+    expect(screen.getByText('נפסלת!')).toBeInTheDocument()
+    expect(screen.getByText('השלמת שלב אחד')).toBeInTheDocument()
+  })
+
+  it('ignores a second press on "המשך משחק" and a stale presentation after resume', async () => {
+    queueColors(['red', 'green'])
+    render(<App />)
+    await startGame()
+    await advance(1000) // mid presentation
+    goAbout()
+    goHome()
+    vi.mocked(audio.startTone).mockClear()
+
+    const resume = button('המשך משחק')
+    fireEvent.click(resume)
+    fireEvent.click(resume)
+    await advance(0)
+    await advance(presentationMs(1))
+    expect(audio.startTone).toHaveBeenCalledTimes(1) // one presentation, not two
+    expect(screen.getByText('התור שלך')).toBeInTheDocument()
+  })
+
+  it('stays paused with a message when audio cannot be unlocked, and resumes on retry', async () => {
+    queueColors(['red'])
+    render(<App />)
+    await startGame()
+    goAbout()
+    goHome()
+
+    vi.mocked(audio.unlockAudio).mockResolvedValue(false)
+    fireEvent.click(button('המשך משחק'))
+    await advance(0)
+    expect(screen.getByText('לא ניתן להפעיל את הצלילים. נסו שוב.')).toBeInTheDocument()
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
+    expect(button('המשך משחק')).toBeInTheDocument()
+
+    vi.mocked(audio.unlockAudio).mockResolvedValue(true)
+    fireEvent.click(button('המשך משחק'))
+    await advance(0)
+    expect(screen.getByText('המשחק מציג את הרצף')).toBeInTheDocument()
+    expect(screen.queryByText('לא ניתן להפעיל את הצלילים. נסו שוב.')).not.toBeInTheDocument()
+  })
+
+  it('hiding the app pauses like leaving for "אודות", and showing it again does not resume', async () => {
+    queueColors(['red'])
+    render(<App />)
+    await startGame()
+    await advance(1000)
+    expect(button('אדום')).toHaveClass('quadrant--lit')
+
+    setVisibility('hidden')
+    await advance(0)
+    expect(tones[0].stop).toHaveBeenCalled()
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
+
+    const toneCount = tones.length
+    setVisibility('visible')
+    await advance(10_000)
+    expect(tones).toHaveLength(toneCount)
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
+    expect(button('המשך משחק')).toBeInTheDocument()
+  })
+
+  it('"pagehide" pauses the game too', async () => {
+    queueColors(['red'])
+    render(<App />)
+    await startGame()
+    await advance(presentationMs(1))
+    expect(screen.getByText('התור שלך')).toBeInTheDocument()
+
+    fireEvent(window, new Event('pagehide'))
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
+    quadrants().forEach((q) => expect(q).toBeDisabled())
+  })
+
+  it('pausing during the pause between two stages keeps the completed stage and replays it on resume', async () => {
+    queueColors(SEQ)
+    render(<App />)
+    await startGame()
+    await advance(presentationMs(1))
+    tap('red') // stage 1 done; 1s pause before stage 2
+    await advance(400)
+
+    goAbout()
+    goHome()
+    await advance(5000) // the pending move to stage 2 was cancelled
+    expect(screen.getByText('המשחק מושהה')).toBeInTheDocument()
+    expect(screen.getByText('שלב 1 מתוך 10')).toBeInTheDocument()
+    expect(randomColor).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(button('המשך משחק'))
+    await advance(0)
+    await advance(presentationMs(1))
+    expect(screen.getByText('התור שלך')).toBeInTheDocument()
+    expect(randomColor).toHaveBeenCalledTimes(1) // still no second colour
+  })
+
+  it('pausing right after a wrong press settles the loss quietly; it cannot be dodged', async () => {
+    queueColors(['red'])
+    render(<App />)
+    await startGame()
+    await advance(presentationMs(1))
+    tap('green') // wrong; the loss dialog is 1s away
+
+    goAbout()
+    await advance(5000)
+    expect(audio.playLose).not.toHaveBeenCalled() // nothing is played while away
+    goHome()
+    expect(screen.getByText('נפסלת!')).toBeInTheDocument()
+    expect(screen.getByText('לא השלמת אף שלב')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'המשך משחק' })).not.toBeInTheDocument()
+  })
+
+  it('pausing right after the last correct press of stage 10 settles the win quietly', async () => {
+    queueColors(SEQ)
+    render(<App />)
+    await startGame()
+    await playStages(10)
+
+    goAbout()
+    await advance(5000)
+    expect(audio.playWin).not.toHaveBeenCalled()
+    expect(confetti).not.toHaveBeenCalled()
+    goHome()
+    expect(screen.getByText('כל הכבוד!')).toBeInTheDocument()
+  })
+
+  it('leaving with the result dialog open keeps the result and silences the confetti', async () => {
     queueColors(['red'])
     render(<App />)
     await startGame()
@@ -329,9 +543,20 @@ describe('audio and navigation', () => {
     await advance(1000)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
-    fireEvent.click(button('אודות'))
-    fireEvent.click(button('בית'))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    goAbout()
+    expect(audio.stopAll).toHaveBeenCalled()
+    expect(confetti.reset).toHaveBeenCalled()
+    goHome()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    fireEvent.click(button('אישור'))
     expect(button('התחל משחק')).toBeInTheDocument()
+  })
+
+  it('leaving before a game starts changes nothing', async () => {
+    render(<App />)
+    goAbout()
+    goHome()
+    expect(button('התחל משחק')).toBeInTheDocument()
+    expect(screen.queryByText('המשחק מושהה')).not.toBeInTheDocument()
   })
 })
