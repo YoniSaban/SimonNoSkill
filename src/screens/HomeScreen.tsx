@@ -3,9 +3,13 @@ import ResultDialog from '../components/ResultDialog'
 import { TOTAL_ROUNDS } from '../game/constants'
 import type { GameApi } from '../game/useGame'
 
-type Props = { game: GameApi }
+type Props = {
+  game: GameApi
+  /** The last finished game could not be saved to the history. */
+  saveFailed: boolean
+}
 
-export default function HomeScreen({ game }: Props) {
+export default function HomeScreen({ game, saveFailed }: Props) {
   const { state, litColor, audioFailed, start, resume, pressStart, dismiss } = game
   const { status, round, completedRounds } = state
 
@@ -47,7 +51,12 @@ export default function HomeScreen({ game }: Props) {
               onPressStart={pressStart}
             />
             {(status === 'won' || status === 'lost') && (
-              <ResultDialog outcome={status} completedRounds={completedRounds} onConfirm={dismiss} />
+              <ResultDialog
+                outcome={status}
+                completedRounds={completedRounds}
+                saveFailed={saveFailed}
+                onConfirm={dismiss}
+              />
             )}
           </div>
           <p className={`hint${audioError ? ' hint--error' : ''}`} aria-live="polite">

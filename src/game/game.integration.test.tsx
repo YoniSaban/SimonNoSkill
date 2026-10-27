@@ -62,6 +62,7 @@ const quadrants = () => COLORS.map((c) => button(c.label))
 
 beforeEach(() => {
   vi.useFakeTimers()
+  localStorage.clear()
   tones = []
   vi.mocked(audio.unlockAudio).mockResolvedValue(true)
   vi.mocked(audio.startTone).mockImplementation(() => {

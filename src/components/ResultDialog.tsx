@@ -1,6 +1,8 @@
 type Props = {
   outcome: 'won' | 'lost'
   completedRounds: number
+  /** The result could not be written to the history. */
+  saveFailed: boolean
   onConfirm: () => void
 }
 
@@ -10,7 +12,7 @@ function completedText(n: number): string {
   return `השלמת ${n} שלבים`
 }
 
-export default function ResultDialog({ outcome, completedRounds, onConfirm }: Props) {
+export default function ResultDialog({ outcome, completedRounds, saveFailed, onConfirm }: Props) {
   const won = outcome === 'won'
   return (
     <div
@@ -31,6 +33,11 @@ export default function ResultDialog({ outcome, completedRounds, onConfirm }: Pr
           </h2>
           <p className="result__text">{completedText(completedRounds)}</p>
         </>
+      )}
+      {saveFailed && (
+        <p className="error-text" role="alert">
+          לא ניתן לשמור את תוצאת המשחק בהיסטוריה.
+        </p>
       )}
       <button type="button" className="btn btn--primary" autoFocus onClick={onConfirm}>
         אישור

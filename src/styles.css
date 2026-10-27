@@ -344,6 +344,135 @@ ul {
   text-align: center;
 }
 
+.error-text {
+  color: var(--red);
+  text-align: center;
+}
+
+/* ---------- History ---------- */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.history-card__main {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-card__rounds {
+  font-weight: 600;
+}
+
+.history-card__outcome {
+  font-size: 14px;
+}
+
+.history-card__outcome--win {
+  color: var(--green);
+}
+
+.history-card__outcome--loss {
+  color: #ff7a72; /* softer than --red, readable on the dark card */
+}
+
+.history-card__date {
+  font-size: 14px;
+  color: var(--soft-gray);
+  white-space: nowrap;
+}
+
+.history__error {
+  margin-top: var(--space-2);
+}
+
+.history__delete {
+  margin-top: var(--space-3);
+}
+
+.btn--secondary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--white);
+}
+
+.btn--danger {
+  background: var(--red);
+  color: var(--white);
+}
+
+.btn--muted {
+  background: var(--soft-gray);
+  color: var(--charcoal);
+}
+
+/* ---------- Confirm dialog (light card over a dark scrim, as in the mockup) ---------- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-3);
+  background: rgba(3, 8, 18, 0.78);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(100%, 340px);
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  background: #f7f9fc;
+  color: var(--charcoal);
+  border: 1px solid var(--soft-gray);
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.confirm__title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.confirm__text {
+  color: #4a5568;
+}
+
+.confirm__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.confirm .btn {
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+.confirm :focus-visible {
+  outline-color: var(--blue);
+}
+
 /* ---------- Bottom navigation ---------- */
 
 .nav {
