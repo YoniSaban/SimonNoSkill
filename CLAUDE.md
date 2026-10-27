@@ -29,6 +29,12 @@
 - `.gitignore` מתעלם מ-`.env`, מ-`.env.*` ומ-`node_modules`, עם החריגה `!.env.example`.
 - ב-Settings ← Pages של הריפו, Source מוגדר ל-**GitHub Actions**.
 
+## PWA ועדכונים (מאבן דרך 5)
+- האפליקציה מותקנת עם Service Worker ו-Precache (`vite-plugin-pwa`, `registerType: 'prompt'`, בלי `skipWaiting` ובלי `clientsClaim`).
+- גרסה חדשה מגיעה לטלפון רק אחרי **סגירה מלאה** של כל חלונות האפליקציה ופתיחה מחדש. רענון לא מספיק. כשהמשתמש מדווח שתיקון "לא מופיע", בודקים את זה לפני שמחפשים באג.
+- האייקונים נוצרים מ-`public/icon.svg` ב-`npm run generate-pwa-assets`, ונשמרים ב-`public/`.
+- בדיקת Offline מקומית: `npm run build`, ואז הפעלת `simon-preview` (`.claude/launch.json`), טעינה עד שה-Service Worker שולט, עצירת השרת וטעינה מחדש.
+
 ## עבודה לפי אבני דרך
 - בונים לפי `spec/MILESTONES.md`, אבן דרך אחרי אבן דרך ולפי הסדר. כל אבן דרך נעשית בשיחה חדשה באותה תיקייה.
 - לכל אבן דרך ארבעה שלבים:
