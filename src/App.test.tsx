@@ -28,14 +28,13 @@ describe('App shell', () => {
     expect(COLORS).toHaveLength(4)
   })
 
-  it('does not run a game yet: board is inert and the start button changes nothing', async () => {
+  it('keeps the board inert until a game is started', () => {
     render(<App />)
     const board = screen.getByRole('group', { name: 'לוח המשחק' })
     within(board)
       .getAllByRole('button')
       .forEach((b) => expect(b).toBeDisabled())
-    await userEvent.click(screen.getByRole('button', { name: 'התחל משחק' }))
-    expect(screen.getByText('שלב 1 מתוך 10')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('navigates between exactly two screens without a page reload', async () => {
