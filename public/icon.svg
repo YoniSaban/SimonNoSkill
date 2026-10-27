@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- App icon source (ADR-7). Board ≈78% of the canvas, inside the maskable safe zone.
+       Colours sit in the board's spatial order: green TL, red TR, yellow BL, blue BR. -->
+  <rect width="512" height="512" fill="#0A1628"/>
+  <circle cx="256" cy="256" r="196" fill="#0F0F0F" stroke="#1E3556" stroke-width="8"/>
+  <path d="M256 256 L74 256 A182 182 0 0 1 256 74 Z" fill="#00D26A"/>
+  <path d="M256 256 L256 74 A182 182 0 0 1 438 256 Z" fill="#FF3B30"/>
+  <path d="M256 256 L256 438 A182 182 0 0 1 74 256 Z" fill="#FFD600"/>
+  <path d="M256 256 L438 256 A182 182 0 0 1 256 438 Z" fill="#00A3FF"/>
+  <rect x="249" y="66" width="14" height="380" fill="#0F0F0F"/>
+  <rect x="66" y="249" width="380" height="14" fill="#0F0F0F"/>
+  <circle cx="256" cy="256" r="68" fill="#0F0F0F"/>
+  <circle cx="256" cy="256" r="56" fill="#0A1628" stroke="#1E3556" stroke-width="6"/>
+</svg>
